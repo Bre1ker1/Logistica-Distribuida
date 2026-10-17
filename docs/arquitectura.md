@@ -160,32 +160,4 @@ Se identifican tres casos críticos de acoplamiento en el sistema monolítico pr
         | DB_Shipments (SQL)      |                       | DB_Tracking (NoSQL/SQL)  |
         +-------------------------+                       +--------------------------+
 
-7. Checklist de Validación de Límites
-[x] Puede explicarse su responsabilidad principal en una frase clara.
 
-[x] Agrupa reglas de negocio relacionadas entre sí.
-
-[x] Posee un conjunto de datos o decisiones sobre los cuales es responsable.
-
-[x] No fue creado únicamente porque existe una tabla o entidad con ese nombre.
-
-[x] Su interfaz pública se define sin exponer detalles internos de base de datos.
-
-[x] Puede modificarse internamente sin exigir cambios simultáneos en los demás servicios.
-
-[x] No duplica reglas de negocio cuya autoridad pertenece a otro servicio.
-
-[x] Las dependencias con otros servicios son necesarias y están justificadas.
-
-[x] Se entienden claramente las responsabilidades fuera de alcance de cada servicio
-
----
-
-### Paso 3: Guardar el archivo
-1. Arriba a la derecha haz clic en el botón azul/verde **Commit changes...**
-2. En la ventanita que aparece:
-   * Título del commit: `Add documentation for architecture and boundaries`[cite: 4].
-   * Selecciona **Commit directly to the `main` branch** (para guardarlo directo en main).
-   * Haz clic en **Commit changes**.
-
-Dime cuando lo tengas listo y pasamos a invitar a los profes/integrantes o a crear la etiqueta `tp5-entrega`[cite: 3, 4].
