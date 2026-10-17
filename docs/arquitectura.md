@@ -160,4 +160,23 @@ Se identifican tres casos críticos de acoplamiento en el sistema monolítico pr
         | DB_Shipments (SQL)      |                       | DB_Tracking (NoSQL/SQL)  |
         +-------------------------+                       +--------------------------+
 
+7. Checklist de Validación de Límites
+[x] Puede explicarse su responsabilidad principal en una frase clara.
+
+[x] Agrupa reglas de negocio relacionadas entre sí.
+
+[x] Posee un conjunto de datos o decisiones sobre los cuales es responsable.
+
+[x] No fue creado únicamente porque existe una tabla o entidad con ese nombre.
+
+[x] Su interfaz pública se define sin exponer detalles internos de base de datos.
+
+[x] Puede modificarse internamente sin exigir cambios simultáneos en los demás servicios.
+
+[x] No duplica reglas de negocio cuya autoridad pertenece a otro servicio.
+
+[x] Las dependencias con otros servicios son necesarias y están justificadas.
+
+[x] Se entienden claramente las responsabilidades fuera de alcance de cada servicio.
+
 
