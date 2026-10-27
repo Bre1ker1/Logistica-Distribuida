@@ -1,71 +1,46 @@
 import { Router } from 'express';
 import TrackingEvent from '../models/TrackingEvent.js';
+import { verifyToken, checkRole } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
-/**
- * @openapi
- * /api/tracking/{guia}:
- *   get:
- *     summary: Obtener el historial de trazabilidad de un paquete
- *     parameters:
- *       - in: path
- *         name: guia
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Historial de eventos obtenido exitosamente
- */
-router.get('/tracking/:guia', async (req, res) => {
+// Consulta de trazabilidad: Requiere estar autenticado (USER, OPERADOR, ADMIN)
+router.get('/tracking/:guia', verifyToken, async (req, res) => {
   try {
-    const { guia } = req.params;
-    
-    const events = [
-      { status: 'REGISTRADO', location: 'Centro de Recepción MZA', timestamp: new Date() },
-      { status: 'EN_TRANSITO', location: 'Hub Principal MZA-01', timestamp: new Date() }
-    ];
-
-    res.json({ guia, events });
+    const events = await TrackingEvent.find({ guia: req.params.guia }).sort({ timestamp: 1 });
+    if (!events || events.length === 0) {
+      return res.status(404).json({ message: 'No se encontraron eventos para la guia especificada' });
+    }
+    res.json({ guia: req.params.guia, historial: events });
   } catch (error) {
-    res.status(500).json({ error: 'Error al consultar el historial de tracking' });
+    res.status(500).json({ error: 'Error al consultar la trazabilidad' });
   }
 });
 
-/**
- * @openapi
- * /api/tracking/events:
- *   post:
- *     summary: Registrar un nuevo evento de escaneo/despacho
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               guia:
- *                 type: string
- *               status:
- *                 type: string
- *               location:
- *                 type: string
- *     responses:
- *       201:
- *         description: Evento registrado exitosamente
- */
-router.post('/tracking/events', async (req, res) => {
-  const { guia, status, location } = req.body;
+// Registro de eventos de despacho: Restringido únicamente a ADMIN u OPERADOR
+router.post('/tracking/events', verifyToken, checkRole(['ADMIN', 'OPERADOR']), async (req, res) => {
+  try {
+    const { guia, estado, ubicacion, observaciones } = req.body;
 
-  if (!guia || !status || !location) {
-    return res.status(400).json({ error: 'Faltan parámetros requeridos (guia, status, location)' });
+    if (!guia || !estado || !ubicacion) {
+      return res.status(400).json({ error: 'Guia, estado y ubicacion son obligatorios' });
+    }
+
+    const newEvent = await TrackingEvent.create({
+      guia,
+      estado,
+      ubicacion,
+      observaciones,
+      registradoPor: req.user.email
+    });
+
+    res.status(201).json({
+      message: 'Evento de trazabilidad registrado con exito',
+      evento: newEvent
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al registrar el evento de trazabilidad' });
   }
-
-  res.status(201).json({
-    message: 'Evento de escaneo registrado exitosamente',
-    event: { guia, status, location, timestamp: new Date() }
-  });
 });
 
 export default router;
