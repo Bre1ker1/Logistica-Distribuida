@@ -1,69 +1,62 @@
 import { Router } from 'express';
-import { validateCoverage } from '../clients/coverageClient.js';
+import Shipment from '../models/Shipment.js';
+import { verifyToken } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
-/**
- * @openapi
- * /api/shipments:
- *   get:
- *     summary: Obtener listado de envíos
- *     responses:
- *       200:
- *         description: OK
- */
-router.get('/shipments', (req, res) => {
-  res.json({ message: 'Listado de envíos', shipments: [] });
-});
+// Endpoint de creación de envíos: Protegido y con propagación de token JWT
+router.post('/shipments', verifyToken, async (req, res) => {
+  try {
+    const { origen, destino, cp, peso } = req.body;
 
-/**
- * @openapi
- * /api/shipments:
- *   post:
- *     summary: Crear un nuevo envío con validación de cobertura
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               destinationCp:
- *                 type: string
- *               weight:
- *                 type: number
- *     responses:
- *       201:
- *         description: Envío creado exitosamente
- *       400:
- *         description: Sin cobertura
- *       503:
- *         description: Servicio de cobertura no disponible
- */
-router.post('/shipments', async (req, res) => {
-  const { destinationCp, weight } = req.body;
+    if (!origen || !destino || !cp) {
+      return res.status(400).json({ error: 'Origen, destino y codigo postal son obligatorios' });
+    }
 
-  if (!destinationCp || !weight) {
-    return res.status(400).json({ error: 'Faltan parámetros requeridos (destinationCp, weight)' });
+    // Consulta HTTP a coverage-logistics-service PROPAGANDO EL JWT
+    const coverageUrl = process.env.COVERAGE_SERVICE_URL || 'http://localhost:3002';
+    
+    const coverageResponse = await fetch(`${coverageUrl}/api/logistics/coverage/validate?cp=${cp}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${req.token}` // PROPAGACIÓN DEL TOKEN JWT
+      }
+    });
+
+    if (!coverageResponse.ok) {
+      const errorData = await coverageResponse.json();
+      return res.status(coverageResponse.status).json({
+        error: 'Fallo la validacion de cobertura autenticada',
+        detalle: errorData
+      });
+    }
+
+    const coverageData = await coverageResponse.json();
+
+    if (!coverageData.valid) {
+      return res.status(400).json({ error: 'La zona especificada no posee cobertura para envíos' });
+    }
+
+    // Creación del envío en base de datos
+    const newShipment = await Shipment.create({
+      origen,
+      destino,
+      cp,
+      peso,
+      hubAsignado: coverageData.hubId,
+      creadoPor: req.user.email,
+      estado: 'CREADO'
+    });
+
+    res.status(201).json({
+      message: 'Envio registrado exitosamente',
+      envio: newShipment
+    });
+
+  } catch (error) {
+    res.status(500).json({ error: 'Error interno en el servicio de envios' });
   }
-
-  const coverageResult = await validateCoverage(destinationCp);
-
-  if (coverageResult.serviceUnavailable) {
-    return res.status(503).json({ error: 'Servicio de cobertura no disponible temporalmente' });
-  }
-
-  if (!coverageResult.valid) {
-    return res.status(400).json({ error: 'El código postal de destino no tiene cobertura activa' });
-  }
-
-  const cost = weight * 1500;
-  const guia = `LOG-${Math.floor(100000 + Math.random() * 900000)}`;
-
-  res.status(201).json({
-    message: 'Envío creado exitosamente',
-    shipment: { guia, destinationCp, weight, cost, status: 'CREADO' }
-  });
 });
 
 export default router;
