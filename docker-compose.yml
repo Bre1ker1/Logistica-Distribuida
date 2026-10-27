@@ -1,88 +1,62 @@
 version: '3.8'
 
-networks:
-  logistics-network:
-    driver: bridge
-
-volumes:
-  shipments_data:
-  logistics_data:
-  tracking_data:
-
 services:
-  # Base de Datos 1: Order Service
-  order-db:
+  mongo-auth:
     image: mongo:6.0
-    container_name: order-db
-    networks:
-      - logistics-network
+    container_name: mongo-auth
+    restart: always
+    ports:
+      - "27017:27017"
     volumes:
-      - shipments_data:/data/db
+      - mongo-auth-data:/data/db
 
-  # Base de Datos 2: Coverage Service
-  coverage-db:
-    image: mongo:6.0
-    container_name: coverage-db
-    networks:
-      - logistics-network
-    volumes:
-      - logistics_data:/data/db
+  auth-service:
+    build:
+      context: ./services/auth-service
+    container_name: auth-service
+    restart: always
+    ports:
+      - "4000:4000"
+    environment:
+      - PORT=4000
+      - MONGO_URI=mongodb://mongo-auth:27017/auth-db
+      - JWT_SECRET=${JWT_SECRET:-secreto_super_seguro_tp7_2026}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-1h}
+      - BCRYPT_ROUNDS=${BCRYPT_ROUNDS:-10}
+    depends_on:
+      - mongo-auth
 
-  # Base de Datos 3: Tracking Service
-  tracking-db:
-    image: mongo:6.0
-    container_name: tracking-db
-    networks:
-      - logistics-network
-    volumes:
-      - tracking_data:/data/db
-
-  # Microservicio 1: Order & Shipment
   order-shipment-service:
     build:
       context: ./services/order-shipment-service
-      dockerfile: Dockerfile
     container_name: order-shipment-service
     ports:
       - "3001:3001"
     environment:
       - PORT=3001
-      - MONGODB_URI=mongodb://order-db:27017/DB_Shipments
       - COVERAGE_SERVICE_URL=http://coverage-logistics-service:3002
-    depends_on:
-      - order-db
-    networks:
-      - logistics-network
+      - JWT_SECRET=${JWT_SECRET:-secreto_super_seguro_tp7_2026}
 
-  # Microservicio 2: Coverage & Logistics
   coverage-logistics-service:
     build:
       context: ./services/coverage-logistics-service
-      dockerfile: Dockerfile
     container_name: coverage-logistics-service
     ports:
       - "3002:3002"
     environment:
       - PORT=3002
-      - MONGODB_URI=mongodb://coverage-db:27017/DB_Logistics
-    depends_on:
-      - coverage-db
-    networks:
-      - logistics-network
+      - JWT_SECRET=${JWT_SECRET:-secreto_super_seguro_tp7_2026}
 
-  # Microservicio 3: Tracking & Dispatch
   tracking-dispatch-service:
     build:
       context: ./services/tracking-dispatch-service
-      dockerfile: Dockerfile
     container_name: tracking-dispatch-service
     ports:
       - "3003:3003"
     environment:
       - PORT=3003
-      - MONGODB_URI=mongodb://tracking-db:27017/DB_Tracking
-      - SHIPMENT_SERVICE_URL=http://order-shipment-service:3001
-    depends_on:
-      - tracking-db
-    networks:
-      - logistics-network
+      - JWT_SECRET=${JWT_SECRET:-secreto_super_seguro_tp7_2026}
+
+volumes:
+  mongo-auth-data:
+  
