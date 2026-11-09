@@ -1,16 +1,29 @@
 import mongoose from 'mongoose';
-import bcrypt from 'bcryptjs';
 
 const userSchema = new mongoose.Schema({
-  email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-  passwordHash: { type: String, required: true },
-  role: { type: String, enum: ['USER', 'ADMIN', 'OPERADOR'], default: 'USER' },
-  activo: { type: Boolean, default: true }
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+  },
+  passwordHash: {
+    type: String,
+    required: true,
+  },
+  role: {
+    type: String,
+    enum: ['CLIENTE', 'OPERADOR', 'ADMIN'], // <-- Asegúrate de tener 'CLIENTE'
+    default: 'CLIENTE',
+  },
+  activo: {
+    type: Boolean,
+    default: true,
+  },
 }, { timestamps: true });
 
-// Método para comparar contraseñas durante el login
 userSchema.methods.comparePassword = async function (candidatePassword) {
-  return await bcrypt.compare(candidatePassword, this.passwordHash);
+  const bcrypt = await import('bcryptjs');
+  return bcrypt.default.compare(candidatePassword, this.passwordHash);
 };
 
 export default mongoose.model('User', userSchema);

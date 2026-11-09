@@ -47,6 +47,15 @@ services:
       - PORT=3002
       - JWT_SECRET=${JWT_SECRET:-secreto_super_seguro_tp7_2026}
 
+  mongo-tracking:
+    image: mongo:6.0
+    container_name: tracking-db
+    restart: always
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo-tracking-data:/data/db
+
   tracking-dispatch-service:
     build:
       context: ./services/tracking-dispatch-service
@@ -55,8 +64,11 @@ services:
       - "3003:3003"
     environment:
       - PORT=3003
+      - MONGO_URI=mongodb://tracking-db:27017/tracking-db
       - JWT_SECRET=${JWT_SECRET:-secreto_super_seguro_tp7_2026}
+    depends_on:
+      - mongo-tracking
 
 volumes:
   mongo-auth-data:
-  
+  mongo-tracking-data:

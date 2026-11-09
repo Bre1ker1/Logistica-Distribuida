@@ -5,10 +5,10 @@ import User from '../models/User.js';
 
 const router = Router();
 
-// Registro de usuarios
+// Registro público (Forzado a CLIENTE)
 router.post('/register', async (req, res) => {
   try {
-    const { email, password, role } = req.body;
+    const { email, password } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ error: 'Email y contraseña son requeridos' });
@@ -25,7 +25,7 @@ router.post('/register', async (req, res) => {
     const newUser = await User.create({
       email,
       passwordHash,
-      role: role || 'USER'
+      role: 'CLIENTE'
     });
 
     res.status(201).json({
@@ -37,7 +37,7 @@ router.post('/register', async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({ error: 'Error interno en el servidor' });
+    res.status(500).json({ error: 'Error interno en el servidor: ' + error.message });
   }
 });
 
@@ -51,16 +51,19 @@ router.post('/login', async (req, res) => {
     }
 
     const user = await User.findOne({ email });
-    if (!user || !user.activo) {
+    if (!user) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
-    const isMatch = await user.comparePassword(password);
+    const isMatch = user.comparePassword 
+      ? await user.comparePassword(password)
+      : await bcrypt.compare(password, user.passwordHash);
+
     if (!isMatch) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
-    const secret = process.env.JWT_SECRET || 'secreto_super_seguro_tp7';
+    const secret = process.env.JWT_SECRET || 'secreto_super_seguro_tp7_2026';
     const expiresIn = process.env.JWT_EXPIRES_IN || '1h';
 
     const token = jwt.sign(
@@ -75,7 +78,7 @@ router.post('/login', async (req, res) => {
       expiresIn
     });
   } catch (error) {
-    res.status(500).json({ error: 'Error interno al procesar el login' });
+    res.status(500).json({ error: 'Error interno al procesar el login: ' + error.message });
   }
 });
 
