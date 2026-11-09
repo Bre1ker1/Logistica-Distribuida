@@ -1,4 +1,4 @@
-## Plataforma de Logística, Gestión de Envíos y Trazabilidad
+# Plataforma de Logística, Gestión de Envíos y Trazabilidad
 
 - **Materia:** Programación Distribuida
 - **Carrera:** Licenciatura en Sistemas de Información (Universidad Champagnat)
@@ -77,43 +77,35 @@ Para clonar y ejecutar la plataforma se requiere:
 Toda la infraestructura (los 4 microservicios + las instancias de MongoDB) está contenerizada y orquestada para iniciar de forma unificada.
 
 1. **Clonar el repositorio:**
-   ```bash
-   git clone [https://github.com/Bre1ker1/Logistica-Distribuida.git](https://github.com/Bre1ker1/Logistica-Distribuida.git)
-   cd Logistica-Distribuida
-Variables de Entorno:
+   `git clone https://github.com/Bre1ker1/Logistica-Distribuida.git`
+   `cd Logistica-Distribuida`
 
-Bash
+2. **Variables de Entorno:**
+   `copy .env.example .env`
 
+3. **Compilación y Levantamiento:**
+   `docker-compose up --build`
 
-copy .env.example .env
-Compilación y Levantamiento:
+---
 
-Bash
+## Verificación de Servicios
 
+- **Servicio de Autenticación:**  
+  `POST http://localhost:4000/api/auth/login`
 
-docker-compose up --build
-Verificación de Servicios
-Servicio de Autenticación:
+- **Servicio de Envíos y Pedidos:**  
+  `GET http://localhost:3001/api/shipments`
 
-POST http://localhost:4000/api/auth/login
+- **Servicio de Cobertura Logística:**  
+  `GET http://localhost:3002/api/coverage`
 
-Servicio de Envíos y Pedidos:
+- **Servicio de Seguimiento (Tracking):**  
+  `POST http://localhost:3003/api/tracking/events`  
+  `GET http://localhost:3003/api/tracking/events/:guia`
 
-GET http://localhost:3001/api/shipments
+---
 
-Servicio de Cobertura Logística:
-
-GET http://localhost:3002/api/coverage
-
-Servicio de Seguimiento (Tracking):
-
-POST http://localhost:3003/api/tracking/events
-
-GET http://localhost:3003/api/tracking/events/:guia
-
-Estructura del Proyecto
-Plaintext
-
+## Estructura del Proyecto
 
 Logistica-Distribuida/
 ├── docs/                           # Documentación y diagramas de arquitectura
