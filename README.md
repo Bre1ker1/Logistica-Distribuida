@@ -7,7 +7,7 @@
 
 ---
 
-## 📌 Resumen del Trabajo Práctico (TP7)
+##  Resumen del Trabajo Práctico (TP7)
 
 El objetivo de este trabajo es la consolidación e integración total del ecosistema de microservicios distribuido. Se implementó persistencia real desacoplada con MongoDB para cada servicio, securización completa de endpoints eliminando fallbacks hardcodeados de variables de entorno (`JWT_SECRET`), control de acceso basado en roles (RBAC) y empaquetado unificado mediante Docker Compose.
 
