@@ -13,7 +13,11 @@ const verifyTokenAndRole = (allowedRoles) => {
     }
 
     const token = authHeader.split(' ')[1];
-    const secret = process.env.JWT_SECRET || 'secreto_super_seguro_tp7_2026';
+    const secret = process.env.JWT_SECRET;
+
+    if (!secret) {
+      return res.status(500).json({ error: 'Error del servidor: JWT_SECRET no definido en las variables de entorno' });
+    }
 
     try {
       const decoded = jwt.verify(token, secret);
