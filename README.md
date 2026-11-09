@@ -107,6 +107,7 @@ Toda la infraestructura (los 4 microservicios + las instancias de MongoDB) está
 
 ## Estructura del Proyecto
 
+```text
 Logistica-Distribuida/
 ├── docs/                           # Documentación y diagramas de arquitectura
 ├── services/
