@@ -1,4 +1,4 @@
-# 🚚 Plataforma de Logística, Gestión de Envíos y Trazabilidad
+ Plataforma de Logística, Gestión de Envíos y Trazabilidad
 
 - **Materia:** Programación Distribuida
 - **Carrera:** Licenciatura en Sistemas de Información (Universidad Champagnat)
@@ -7,7 +7,7 @@
 
 ---
 
-## 👥 Integrantes del Equipo
+ Integrantes del Equipo
 
 - Brian Villalba
 - Thomas Rodríguez
@@ -16,12 +16,11 @@
 - Gustavo Balderrama
 
 ---
-
-## 🏗️ Arquitectura del Sistema y Microservicios
+ Arquitectura del Sistema y Microservicios
 
 El sistema implementa una arquitectura distribuida basada en **4 microservicios independientes**, orquestados mediante **Docker Compose**, con bases de datos MongoDB desacopladas y autenticación centralizada basada en tokens JWT con control de accesos basado en roles (RBAC).
 
-### 🧩 Responsabilidades Funcionales
+ Responsabilidades Funcionales
 
 1. **auth-service (Puerto 3000)**
    - **Responsabilidad:** Registro, autenticación de usuarios y generación de tokens JWT firmados.
@@ -42,7 +41,7 @@ El sistema implementa una arquitectura distribuida basada en **4 microservicios 
 
 ---
 
-## 🔐 Seguridad y Autenticación (JWT + RBAC)
+ Seguridad y Autenticación (JWT + RBAC)
 
 Todos los endpoints protegidos del ecosistema requieren la cabecera HTTP de autorización:
 
@@ -56,7 +55,7 @@ Todos los endpoints protegidos del ecosistema requieren la cabecera HTTP de auto
 
 ---
 
-## 🛠️ Requisitos Previos
+ Requisitos Previos
 
 Para clonar y ejecutar la plataforma se requiere:
 
@@ -66,7 +65,7 @@ Para clonar y ejecutar la plataforma se requiere:
 
 ---
 
-## 🚀 Despliegue y Ejecución con Docker Compose
+ Despliegue y Ejecución con Docker Compose
 
 Toda la infraestructura (los 4 microservicios + la instancia de MongoDB) está contenerizada y orquestada para iniciar de forma unificada.
 
@@ -91,7 +90,7 @@ Toda la infraestructura (los 4 microservicios + la instancia de MongoDB) está c
 
 ---
 
-## 📂 Estructura del Proyecto
+ Estructura del Proyecto
 
 ```text
 Logistica-Distribuida/
