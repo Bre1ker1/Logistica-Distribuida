@@ -7,6 +7,12 @@
 
 ---
 
+## 📌 Resumen del Trabajo Práctico (TP7)
+
+El objetivo de este trabajo es la consolidación e integración total del ecosistema de microservicios distribuido. Se implementó persistencia real desacoplada con MongoDB para cada servicio, securización completa de endpoints eliminando fallbacks hardcodeados de variables de entorno (`JWT_SECRET`), control de acceso basado en roles (RBAC) y empaquetado unificado mediante Docker Compose.
+
+---
+
 ## Integrantes del Equipo
 
 - Brian Villalba
@@ -16,15 +22,16 @@
 - Gustavo Balderrama
 
 ---
+
 ## Arquitectura del Sistema y Microservicios
 
-El sistema implementa una arquitectura distribuida basada en **4 microservicios independientes**, orquestados mediante **Docker Compose**, con bases de datos MongoDB desacopladas y autenticación centralizada basada en tokens JWT con control de accesos basado en roles (RBAC).
+El sistema implementa una arquitectura distribuida basada en **4 microservicios independientes**, orquestados mediante **Docker Compose**, con bases de datos MongoDB desacopladas (Database-per-Service) y autenticación centralizada basada en tokens JWT con control de accesos basado en roles (RBAC).
 
 ## Responsabilidades Funcionales
 
-1. **auth-service (Puerto 3000)**
+1. **auth-service (Puerto 4000)**
    - **Responsabilidad:** Registro, autenticación de usuarios y generación de tokens JWT firmados.
-   - **Seguridad:** Manejo de contraseñas encriptadas y asignación de roles (`CLIENTE`, `OPERADOR`, `ADMIN`).
+   - **Seguridad:** Manejo de contraseñas encriptadas, validación de variables de entorno y asignación de roles (`CLIENTE`, `OPERADOR`, `ADMIN`).
    - **Base de Datos:** `auth-db` (MongoDB).
 
 2. **order-shipment-service (Puerto 3001)**
@@ -36,7 +43,7 @@ El sistema implementa una arquitectura distribuida basada en **4 microservicios 
    - **Base de Datos:** `DB_Logistics` (MongoDB).
 
 4. **tracking-dispatch-service (Puerto 3003)**
-   - **Responsabilidad:** Registro y consulta de trazabilidad operativa en tiempo real, eventos de escaneo, actualización de estados de paquetes y confirmación de entregas.
+   - **Responsabilidad:** Registro y consulta de trazabilidad operativa en tiempo real, eventos de escaneo, actualización de estados de paquetes y confirmación de entregas con datos persistidos en MongoDB.
    - **Base de Datos:** `DB_Tracking` (MongoDB).
 
 ---
@@ -47,7 +54,7 @@ Todos los endpoints protegidos del ecosistema requieren la cabecera HTTP de auto
 
 `Authorization: Bearer <TU_TOKEN_JWT>`
 
-- **Autenticación (JWT):** Generada por `auth-service` en `/api/auth/login`.
+- **Autenticación (JWT):** Generada por `auth-service` en `/api/auth/login`. Requiere la variable de entorno `JWT_SECRET` definida en el sistema (sin valores fallback en código).
 - **Control de Acceso (RBAC):** Restricción de endpoints según el rol embebido en el token:
   - **CLIENTE:** Consulta de cotizaciones, creación de envíos propios y rastreo de paquetes.
   - **OPERADOR:** Actualización de estados en ruta, escaneo de eventos de tracking y gestión de hubs.
@@ -67,39 +74,44 @@ Para clonar y ejecutar la plataforma se requiere:
 
 ## Despliegue y Ejecución con Docker Compose
 
-Toda la infraestructura (los 4 microservicios + la instancia de MongoDB) está contenerizada y orquestada para iniciar de forma unificada.
+Toda la infraestructura (los 4 microservicios + las instancias de MongoDB) está contenerizada y orquestada para iniciar de forma unificada.
 
 1. **Clonar el repositorio:**
-   `git clone https://github.com/Bre1ker1/Logistica-Distribuida.git`
-   `cd Logistica-Distribuida`
+   ```bash
+   git clone [https://github.com/Bre1ker1/Logistica-Distribuida.git](https://github.com/Bre1ker1/Logistica-Distribuida.git)
+   cd Logistica-Distribuida
+Variables de Entorno:
 
-2. **Variables de Entorno:**
-   `copy .env.example .env`
+Bash
 
-3. **Compilación y Levantamiento:**
-   `docker-compose up --build`
 
----
+copy .env.example .env
+Compilación y Levantamiento:
 
-##  Verificación de Servicios
+Bash
 
-- **Auth Service:** `POST http://localhost:3000/api/auth/login`
-- **Order Shipment Service:** `GET http://localhost:3001/api/shipments`
-- **Coverage Logistics Service:** `GET http://localhost:3002/api/coverage`
-- **Tracking Dispatch Service:** `POST http://localhost:3003/api/tracking/events`
 
----
+docker-compose up --build
+Verificación de Servicios
+Auth Service: POST http://localhost:4000/api/auth/login
 
-## Estructura del Proyecto
+Order Shipment Service: GET http://localhost:3001/api/shipments
 
-```text
+Coverage Logistics Service: GET http://localhost:3002/api/coverage
+
+Tracking Dispatch Service: POST http://localhost:3003/api/tracking/events | GET http://localhost:3003/api/tracking/events/:guia
+
+Estructura del Proyecto
+Plaintext
+
+
 Logistica-Distribuida/
 ├── docs/                      # Documentación y diagramas de arquitectura
 ├── services/
-│   ├── auth-service/          # Microservicio de Autenticación y Usuarios
-│   ├── order-shipment-service/# Microservicio de Envíos y Pedidos
-│   ├── coverage-logistics-service/ # Microservicio de Cobertura Logística
-│   └── tracking-dispatch-service/  # Microservicio de Tracking y Despacho
-├── .gitignore                  # Exclusión de archivos (ignora node_modules)
+│   ├── auth-service/          # Microservicio de Autenticación y Usuarios (Puerto 4000)
+│   ├── order-shipment-service/# Microservicio de Envíos y Pedidos (Puerto 3001)
+│   ├── coverage-logistics-service/ # Microservicio de Cobertura Logística (Puerto 3002)
+│   └── tracking-dispatch-service/  # Microservicio de Tracking y Despacho (Puerto 3003)
+├── .gitignore                  # Exclusión de archivos (ignora node_modules y .env)
 ├── docker-compose.yml          # Orquestador multi-contenedor
 └── README.md
