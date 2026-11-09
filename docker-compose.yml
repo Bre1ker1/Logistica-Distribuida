@@ -1,6 +1,7 @@
 version: '3.8'
 
 services:
+  # Bases de datos desacopladas
   mongo-auth:
     image: mongo:6.0
     container_name: mongo-auth
@@ -10,6 +11,34 @@ services:
     volumes:
       - mongo-auth-data:/data/db
 
+  mongo-shipments:
+    image: mongo:6.0
+    container_name: mongo-shipments
+    restart: always
+    ports:
+      - "27019:27017"
+    volumes:
+      - mongo-shipments-data:/data/db
+
+  mongo-coverage:
+    image: mongo:6.0
+    container_name: mongo-coverage
+    restart: always
+    ports:
+      - "27020:27017"
+    volumes:
+      - mongo-coverage-data:/data/db
+
+  mongo-tracking:
+    image: mongo:6.0
+    container_name: mongo-tracking
+    restart: always
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo-tracking-data:/data/db
+
+  # Microservicios
   auth-service:
     build:
       context: ./services/auth-service
@@ -20,7 +49,7 @@ services:
     environment:
       - PORT=4000
       - MONGO_URI=mongodb://mongo-auth:27017/auth-db
-      - JWT_SECRET=${JWT_SECRET:-secreto_super_seguro_tp7_2026}
+      - JWT_SECRET=${JWT_SECRET}
       - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-1h}
       - BCRYPT_ROUNDS=${BCRYPT_ROUNDS:-10}
     depends_on:
@@ -30,45 +59,47 @@ services:
     build:
       context: ./services/order-shipment-service
     container_name: order-shipment-service
+    restart: always
     ports:
       - "3001:3001"
     environment:
       - PORT=3001
+      - MONGO_URI=mongodb://mongo-shipments:27017/DB_Shipments
       - COVERAGE_SERVICE_URL=http://coverage-logistics-service:3002
-      - JWT_SECRET=${JWT_SECRET:-secreto_super_seguro_tp7_2026}
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      - mongo-shipments
 
   coverage-logistics-service:
     build:
       context: ./services/coverage-logistics-service
     container_name: coverage-logistics-service
+    restart: always
     ports:
       - "3002:3002"
     environment:
       - PORT=3002
-      - JWT_SECRET=${JWT_SECRET:-secreto_super_seguro_tp7_2026}
-
-  mongo-tracking:
-    image: mongo:6.0
-    container_name: tracking-db
-    restart: always
-    ports:
-      - "27018:27017"
-    volumes:
-      - mongo-tracking-data:/data/db
+      - MONGO_URI=mongodb://mongo-coverage:27017/DB_Logistics
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      - mongo-coverage
 
   tracking-dispatch-service:
     build:
       context: ./services/tracking-dispatch-service
     container_name: tracking-dispatch-service
+    restart: always
     ports:
       - "3003:3003"
     environment:
       - PORT=3003
-      - MONGO_URI=mongodb://tracking-db:27017/tracking-db
-      - JWT_SECRET=${JWT_SECRET:-secreto_super_seguro_tp7_2026}
+      - MONGO_URI=mongodb://mongo-tracking:27017/DB_Tracking
+      - JWT_SECRET=${JWT_SECRET}
     depends_on:
       - mongo-tracking
 
 volumes:
   mongo-auth-data:
+  mongo-shipments-data:
+  mongo-coverage-data:
   mongo-tracking-data:

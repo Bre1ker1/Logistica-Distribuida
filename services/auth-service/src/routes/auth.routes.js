@@ -5,7 +5,7 @@ import User from '../models/User.js';
 
 const router = Router();
 
-// Registro público (Forzado a CLIENTE)
+// Registro público (Forzado estrictamente a CLIENTE)
 router.post('/register', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -25,7 +25,7 @@ router.post('/register', async (req, res) => {
     const newUser = await User.create({
       email,
       passwordHash,
-      role: 'CLIENTE'
+      role: 'CLIENTE' // Garantiza que jamás se registre un ADMIN u OPERADOR por ruta pública
     });
 
     res.status(201).json({
@@ -41,7 +41,7 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// Login y emisión de JWT
+// Login y emisión de JWT (Sin fallbacks hardcodeados)
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -55,7 +55,7 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
-    const isMatch = user.comparePassword 
+    const isMatch = user.comparePassword
       ? await user.comparePassword(password)
       : await bcrypt.compare(password, user.passwordHash);
 
@@ -63,7 +63,12 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
-    const secret = process.env.JWT_SECRET || 'secreto_super_seguro_tp7_2026';
+    // Validación estricta de JWT_SECRET sin fallback
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      return res.status(500).json({ error: 'Error de configuración: JWT_SECRET no definido en el servidor' });
+    }
+
     const expiresIn = process.env.JWT_EXPIRES_IN || '1h';
 
     const token = jwt.sign(
