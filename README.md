@@ -93,25 +93,35 @@ Bash
 
 docker-compose up --build
 Verificación de Servicios
-Auth Service: POST http://localhost:4000/api/auth/login
+Servicio de Autenticación:
 
-Order Shipment Service: GET http://localhost:3001/api/shipments
+POST http://localhost:4000/api/auth/login
 
-Coverage Logistics Service: GET http://localhost:3002/api/coverage
+Servicio de Envíos y Pedidos:
 
-Tracking Dispatch Service: POST http://localhost:3003/api/tracking/events | GET http://localhost:3003/api/tracking/events/:guia
+GET http://localhost:3001/api/shipments
+
+Servicio de Cobertura Logística:
+
+GET http://localhost:3002/api/coverage
+
+Servicio de Seguimiento (Tracking):
+
+POST http://localhost:3003/api/tracking/events
+
+GET http://localhost:3003/api/tracking/events/:guia
 
 Estructura del Proyecto
 Plaintext
 
 
 Logistica-Distribuida/
-├── docs/                      # Documentación y diagramas de arquitectura
+├── docs/                           # Documentación y diagramas de arquitectura
 ├── services/
-│   ├── auth-service/          # Microservicio de Autenticación y Usuarios (Puerto 4000)
-│   ├── order-shipment-service/# Microservicio de Envíos y Pedidos (Puerto 3001)
+│   ├── auth-service/               # Microservicio de Autenticación y Usuarios (Puerto 4000)
+│   ├── order-shipment-service/     # Microservicio de Envíos y Pedidos (Puerto 3001)
 │   ├── coverage-logistics-service/ # Microservicio de Cobertura Logística (Puerto 3002)
 │   └── tracking-dispatch-service/  # Microservicio de Tracking y Despacho (Puerto 3003)
-├── .gitignore                  # Exclusión de archivos (ignora node_modules y .env)
-├── docker-compose.yml          # Orquestador multi-contenedor
+├── .gitignore                      # Exclusión de archivos (ignora node_modules y .env)
+├── docker-compose.yml              # Orquestador multi-contenedor
 └── README.md
