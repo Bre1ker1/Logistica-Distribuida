@@ -18,5 +18,14 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.0"
+  },
+  "overrides": {
+    "swagger-jsdoc": {
+      "glob": "14.0.5"
+    },
+    "nodemon": {
+      "minimatch": "11.0.8"
+    },
+    "fast-uri": "3.1.9"
   }
 }

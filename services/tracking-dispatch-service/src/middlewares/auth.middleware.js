@@ -1,41 +1,73 @@
+
 import jwt from 'jsonwebtoken';
 
-// Verificación de autenticación (Token válido)
+// Verifica que el usuario presente un JWT válido firmado con HS256.
 export const verifyToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
+  const authHeader = req.headers.authorization;
+  const match = /^Bearer\s+(.+)$/i.exec(authHeader || '');
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Acceso denegado. Token no provisto o formato invalido' });
+  if (!match) {
+    return res.status(401).json({
+      error: 'Acceso denegado. Se requiere un token Bearer válido'
+    });
   }
 
-  const token = authHeader.split(' ')[1];
+  const token = match[1].trim();
+
+  if (!token) {
+    return res.status(401).json({
+      error: 'Token no provisto'
+    });
+  }
+
+  const secret = process.env.JWT_SECRET;
+
+  if (!secret) {
+    console.error('[Tracking Auth] JWT_SECRET no configurado');
+
+    return res.status(500).json({
+      error: 'Configuración de seguridad incompleta'
+    });
+  }
 
   try {
-    const secret = process.env.JWT_SECRET || 'secreto_super_seguro_tp7_2026';
-    const decoded = jwt.verify(token, secret);
-    req.user = decoded; // Guardamos el payload del usuario (sub, email, role)
-    next();
+    const decoded = jwt.verify(token, secret, {
+      algorithms: ['HS256']
+    });
+
+    req.user = decoded;
+    req.token = token;
+
+    return next();
+
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({ error: 'Token vencido' });
-    }
-    return res.status(401).json({ error: 'Token invalido o firma no autorizada' });
-  }
-};
-
-// Control de Autorización por Roles (RBAC)
-export const checkRole = (allowedRoles) => {
-  return (req, res, next) => {
-    if (!req.user || !req.user.role) {
-      return res.status(403).json({ error: 'Acceso prohibido. No posee rol asignado' });
-    }
-
-    if (!allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({ 
-        error: `Acceso prohibido. El rol '${req.user.role}' no tiene permisos para esta operacion` 
+      return res.status(401).json({
+        error: 'Token vencido'
       });
     }
 
-    next();
+    return res.status(401).json({
+      error: 'Token inválido o firma no autorizada'
+    });
+  }
+};
+
+// Control de autorización basado en roles (RBAC).
+export const checkRole = (allowedRoles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({
+        error: 'Usuario no autenticado'
+      });
+    }
+
+    if (!req.user.role || !allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({
+        error: 'No tenés permisos para realizar esta operación'
+      });
+    }
+
+    return next();
   };
 };

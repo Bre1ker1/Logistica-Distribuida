@@ -1,24 +1,73 @@
+
 import jwt from 'jsonwebtoken';
 
+// Verifica que el usuario presente un JWT válido firmado con HS256.
 export const verifyToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
+  const authHeader = req.headers.authorization;
+  const match = /^Bearer\s+(.+)$/i.exec(authHeader || '');
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Acceso denegado. Token no provisto o formato invalido' });
+  if (!match) {
+    return res.status(401).json({
+      error: 'Acceso denegado. Se requiere un token Bearer válido'
+    });
   }
 
-  const token = authHeader.split(' ')[1];
+  const token = match[1].trim();
+
+  if (!token) {
+    return res.status(401).json({
+      error: 'Token no provisto'
+    });
+  }
+
+  const secret = process.env.JWT_SECRET;
+
+  if (!secret) {
+    console.error('[Shipment Auth] JWT_SECRET no configurado');
+
+    return res.status(500).json({
+      error: 'Configuración de seguridad incompleta'
+    });
+  }
 
   try {
-    const secret = process.env.JWT_SECRET || 'secreto_super_seguro_tp7_2026';
-    const decoded = jwt.verify(token, secret);
+    const decoded = jwt.verify(token, secret, {
+      algorithms: ['HS256']
+    });
+
     req.user = decoded;
-    req.token = token; // Guardamos el token en la request para propagarlo en llamadas HTTP internas
-    next();
+    req.token = token;
+
+    return next();
+
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({ error: 'Token vencido' });
+      return res.status(401).json({
+        error: 'Token vencido'
+      });
     }
-    return res.status(401).json({ error: 'Token invalido o firma no autorizada' });
+
+    return res.status(401).json({
+      error: 'Token inválido o firma no autorizada'
+    });
   }
+};
+
+// Autoriza el acceso según los roles permitidos.
+export const requireRole = (...allowedRoles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({
+        error: 'Usuario no autenticado'
+      });
+    }
+
+    if (!req.user.role || !allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({
+        error: 'No tenés permisos para realizar esta operación'
+      });
+    }
+
+    return next();
+  };
 };

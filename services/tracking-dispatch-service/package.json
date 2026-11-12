@@ -15,5 +15,10 @@
     "mongoose": "^9.12.0",
     "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^5.0.1"
+  },
+  "overrides": {
+    "swagger-jsdoc": {
+      "glob": "14.0.5"
+    }
   }
 }

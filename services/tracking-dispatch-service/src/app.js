@@ -1,33 +1,60 @@
+
 import crypto from 'node:crypto';
 if (!globalThis.crypto) globalThis.crypto = crypto;
 
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
+import dotenv from 'dotenv';
+
 import setupSwagger from './config/swagger.js';
 import trackingRoutes from './routes/tracking.routes.js';
 
+dotenv.config();
+
 const app = express();
 const PORT = process.env.PORT || 3003;
+const MONGO_URI = process.env.MONGO_URI;
 
 app.use(cors());
 app.use(express.json());
 
-// Inicializar Swagger UI
+// Documentación Swagger
 setupSwagger(app);
 
-// Conexión a MongoDB (Database-per-Service)
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://tracking-db:27017/DB_Tracking';
-mongoose.connect(MONGO_URI)
-  .then(() => console.log('[tracking-dispatch-service] Conectado a MongoDB'))
-  .catch((err) => console.error('[tracking-dispatch-service] Error conectando a MongoDB:', err));
-
 // Endpoint de salud
-app.get('/health', (req, res) => res.json({ status: 'OK', service: 'tracking-dispatch-service' }));
+app.get('/health', (req, res) => {
+  const dbConnected = mongoose.connection.readyState === 1;
 
-// Rutas de tracking
+  return res.status(dbConnected ? 200 : 503).json({
+    service: 'tracking-dispatch-service',
+    status: dbConnected ? 'ok' : 'unavailable',
+    database: dbConnected ? 'connected' : 'disconnected'
+  });
+});
+
+// Rutas de Tracking
 app.use('/api/tracking', trackingRoutes);
 
-app.listen(PORT, () => {
-  console.log(`[tracking-dispatch-service] Corriendo en el puerto ${PORT}`);
-});
+// Iniciar servidor después de conectar MongoDB
+async function startServer() {
+  try {
+    if (!MONGO_URI) {
+      throw new Error('MONGO_URI no está configurada');
+    }
+
+    await mongoose.connect(MONGO_URI);
+
+    console.log('[Tracking] Conectado a MongoDB');
+
+    app.listen(PORT, () => {
+      console.log(`[Tracking] Servidor escuchando en puerto ${PORT}`);
+    });
+
+  } catch (error) {
+    console.error('[Tracking] Error al iniciar el servicio:', error);
+    process.exit(1);
+  }
+}
+
+startServer();
