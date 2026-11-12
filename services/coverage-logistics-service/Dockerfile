@@ -1,6 +1,13 @@
-FROM node:18-alpine 
-WORKDIR /usr/src/app 
-COPY package*.json ./ 
-RUN npm install 
-COPY . . 
-EXPOSE 3002 
+FROM node:24-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+
+RUN npm ci --omit=dev
+
+COPY . .
+
+EXPOSE 3002
+
+CMD ["npm", "start"]

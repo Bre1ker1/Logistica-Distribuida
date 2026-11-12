@@ -1,7 +1,10 @@
-version: '3.8'
 
 services:
-  # Bases de datos desacopladas
+  # ==========================================
+  # BASES DE DATOS
+  # Cada microservicio tiene su propia MongoDB
+  # ==========================================
+
   mongo-auth:
     image: mongo:6.0
     container_name: mongo-auth
@@ -10,6 +13,12 @@ services:
       - "27017:27017"
     volumes:
       - mongo-auth-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
   mongo-shipments:
     image: mongo:6.0
@@ -19,6 +28,12 @@ services:
       - "27019:27017"
     volumes:
       - mongo-shipments-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
   mongo-coverage:
     image: mongo:6.0
@@ -28,6 +43,12 @@ services:
       - "27020:27017"
     volumes:
       - mongo-coverage-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
   mongo-tracking:
     image: mongo:6.0
@@ -37,8 +58,17 @@ services:
       - "27018:27017"
     volumes:
       - mongo-tracking-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
-  # Microservicios
+  # ==========================================
+  # MICROSERVICIO DE AUTENTICACIÓN
+  # ==========================================
+
   auth-service:
     build:
       context: ./services/auth-service
@@ -47,28 +77,24 @@ services:
     ports:
       - "4000:4000"
     environment:
-      - PORT=4000
-      - MONGO_URI=mongodb://mongo-auth:27017/auth-db
-      - JWT_SECRET=${JWT_SECRET}
-      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-1h}
-      - BCRYPT_ROUNDS=${BCRYPT_ROUNDS:-10}
+      PORT: "4000"
+      MONGO_URI: mongodb://mongo-auth:27017/DB_Auth
+      JWT_SECRET: "${JWT_SECRET:?Falta JWT_SECRET en .env}"
+      JWT_EXPIRES_IN: "${JWT_EXPIRES_IN:-1h}"
+      BCRYPT_ROUNDS: "${BCRYPT_ROUNDS:-10}"
     depends_on:
-      - mongo-auth
+      mongo-auth:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4000/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
-  order-shipment-service:
-    build:
-      context: ./services/order-shipment-service
-    container_name: order-shipment-service
-    restart: always
-    ports:
-      - "3001:3001"
-    environment:
-      - PORT=3001
-      - MONGO_URI=mongodb://mongo-shipments:27017/DB_Shipments
-      - COVERAGE_SERVICE_URL=http://coverage-logistics-service:3002
-      - JWT_SECRET=${JWT_SECRET}
-    depends_on:
-      - mongo-shipments
+  # ==========================================
+  # MICROSERVICIO DE COBERTURA LOGÍSTICA
+  # ==========================================
 
   coverage-logistics-service:
     build:
@@ -78,11 +104,50 @@ services:
     ports:
       - "3002:3002"
     environment:
-      - PORT=3002
-      - MONGO_URI=mongodb://mongo-coverage:27017/DB_Logistics
-      - JWT_SECRET=${JWT_SECRET}
+      PORT: "3002"
+      MONGO_URI: mongodb://mongo-coverage:27017/DB_Coverage
+      JWT_SECRET: "${JWT_SECRET:?Falta JWT_SECRET en .env}"
     depends_on:
-      - mongo-coverage
+      mongo-coverage:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3002/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # ==========================================
+  # MICROSERVICIO DE PEDIDOS Y ENVÍOS
+  # ==========================================
+
+  order-shipment-service:
+    build:
+      context: ./services/order-shipment-service
+    container_name: order-shipment-service
+    restart: always
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: "3001"
+      MONGO_URI: mongodb://mongo-shipments:27017/DB_Shipments
+      COVERAGE_SERVICE_URL: http://coverage-logistics-service:3002
+      JWT_SECRET: "${JWT_SECRET:?Falta JWT_SECRET en .env}"
+    depends_on:
+      mongo-shipments:
+        condition: service_healthy
+      coverage-logistics-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # ==========================================
+  # MICROSERVICIO DE TRACKING Y DESPACHO
+  # ==========================================
 
   tracking-dispatch-service:
     build:
@@ -92,11 +157,25 @@ services:
     ports:
       - "3003:3003"
     environment:
-      - PORT=3003
-      - MONGO_URI=mongodb://mongo-tracking:27017/DB_Tracking
-      - JWT_SECRET=${JWT_SECRET}
+      PORT: "3003"
+      MONGO_URI: mongodb://mongo-tracking:27017/DB_Tracking
+      JWT_SECRET: "${JWT_SECRET:?Falta JWT_SECRET en .env}"
+      SHIPMENT_SERVICE_URL: http://order-shipment-service:3001
     depends_on:
-      - mongo-tracking
+      mongo-tracking:
+        condition: service_healthy
+      order-shipment-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3003/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+# ==========================================
+# VOLÚMENES PERSISTENTES
+# ==========================================
 
 volumes:
   mongo-auth-data:
